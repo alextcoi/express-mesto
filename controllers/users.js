@@ -10,19 +10,20 @@ module.exports.getUsers = (req, res) => {
     });
 };
 
-module.exports.getUser = async (req, res) => {
+module.exports.getUser = (req, res) => {
   User.findById(req.params.userId, { __v: 0 })
-    .then((item) => {
-      if (item) {
-        res.send(item);
-      } else {
+    .orFail(new Error("NotFound"))
+    .then((item) => res.send(item))
+    .catch((err) => {
+      if (err.message === "NotFound") {
         res
           .status(404)
           .send({ message: "Пользователь по указанному _id не найден" });
-      }
-    })
-    .catch((err) => {
-      if (err) {
+      } else if (err.name === "CastError") {
+        res.status(400).send({
+          message: "Переданы некорректные данные при поиске пользователя",
+        });
+      } else {
         res.status(500).send({ message: "Ошибка по умолчанию" });
       }
     });
@@ -56,24 +57,19 @@ module.exports.updateProfile = (req, res) => {
       name: req.body.name,
       about: req.body.about,
     },
-    { new: true }
+    { new: true, runValidators: true }
   )
-    .then((item) => {
-      if (item) {
-        res.send(item);
-      } else {
+    .orFail(new Error("NotFound"))
+    .then((item) => res.send(item))
+    .catch((err) => {
+      if (err.message === "NotFound") {
         res
           .status(404)
           .send({ message: "Пользователь по указанному _id не найден" });
-      }
-    })
-    .catch((err) => {
-      if (err.name === "TypeError") {
-        res
-          .status(400)
-          .send({
-            message: "Переданы некорректные данные при обновлении профиля",
-          });
+      } else if (err.name === "TypeError" || err.name === "CastError") {
+        res.status(400).send({
+          message: "Переданы некорректные данные при обновлении профиля",
+        });
       } else {
         res.status(500).send({ message: "Ошибка по умолчанию" });
       }
@@ -86,19 +82,16 @@ module.exports.updateAvatar = (req, res) => {
     {
       avatar: req.body.avatar,
     },
-    { new: true }
+    { new: true, runValidators: true }
   )
-    .then((item) => {
-      if (item) {
-        res.send(item);
-      } else {
+    .orFail(new Error("NotFound"))
+    .then((item) => res.send(item))
+    .catch((err) => {
+      if (err.message === "NotFound") {
         res
           .status(404)
           .send({ message: "Пользователь по указанному _id не найден" });
-      }
-    })
-    .catch((err) => {
-      if (err.name === "TypeError") {
+      } else if (err.name === "TypeError" || err.name === "CastError") {
         res.status(400).send({
           message: "Переданы некорректные данные при обновлении аватара",
         });

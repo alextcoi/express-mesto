@@ -22,11 +22,9 @@ module.exports.createCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === "TypeError") {
-        res
-          .status(400)
-          .send({
-            message: "Переданы некорректные данные при создании карточки",
-          });
+        res.status(400).send({
+          message: "Переданы некорректные данные при создании карточки",
+        });
       } else {
         res.status(500).send({ message: "Ошибка по умолчанию" });
       }
@@ -34,13 +32,22 @@ module.exports.createCard = (req, res) => {
 };
 
 module.exports.deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId).then((item) => {
-    if (item) {
-      res.send("Карточка удалена");
-    } else {
-      res.status(404).send({ message: "Карточка с указанным _id не найдена" });
-    }
-  });
+  Card.findByIdAndRemove(req.params.cardId)
+    .orFail(new Error("NotFound"))
+    .then((item) => res.send(item))
+    .catch((err) => {
+      if (err.message === "NotFound") {
+        res
+          .status(404)
+          .send({ message: "Карточка по указанному id не найдена" });
+      } else if (err.name === "TypeError" || err.name === "CastError") {
+        res.status(400).send({
+          message: "Переданы некорректные данные карточки",
+        });
+      } else {
+        res.status(500).send({ message: "Ошибка по умолчанию" });
+      }
+    });
 };
 
 module.exports.likeCard = (req, res) => {
@@ -49,16 +56,17 @@ module.exports.likeCard = (req, res) => {
     { $addToSet: { likes: req.user._id } },
     { new: true }
   )
-    .then((item) => {
-      res.send(item);
-    })
+    .orFail(new Error("NotFound"))
+    .then((item) => res.send(item))
     .catch((err) => {
-      if (err.name === "TypeError") {
+      if (err.message === "NotFound") {
         res
-          .status(400)
-          .send({
-            message: "Переданы некорректные данные для постановки лайка",
-          });
+          .status(404)
+          .send({ message: "Карточка по указанному id не найдена" });
+      } else if (err.name === "TypeError" || err.name === "CastError") {
+        res.status(400).send({
+          message: "Переданы некорректные данные карточки",
+        });
       } else {
         res.status(500).send({ message: "Ошибка по умолчанию" });
       }
@@ -71,14 +79,19 @@ module.exports.dislikeCard = (req, res) => {
     { $pull: { likes: req.user._id } },
     { new: true }
   )
+    .orFail(new Error("NotFound"))
     .then((item) => {
       res.send(item);
     })
     .catch((err) => {
-      if (err.name === "TypeError") {
+      if (err.message === "NotFound") {
         res
-          .status(400)
-          .send({ message: "Переданы некорректные данные для снятия лайка" });
+          .status(404)
+          .send({ message: "Карточка по указанному id не найдена" });
+      } else if (err.name === "TypeError" || err.name === "CastError") {
+        res.status(400).send({
+          message: "Переданы некорректные данные карточки",
+        });
       } else {
         res.status(500).send({ message: "Ошибка по умолчанию" });
       }

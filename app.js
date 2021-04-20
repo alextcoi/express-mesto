@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const helmet = require("helmet");
 const cardsRouter = require("./routes/cards");
 const usersRouter = require("./routes/users");
 
@@ -12,6 +13,7 @@ const {
 const app = express();
 
 app.use(express.json());
+app.use(helmet());
 
 app.use((req, res, next) => {
   req.user = {
