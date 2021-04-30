@@ -1,16 +1,14 @@
 const Card = require("../models/card");
+const NotFoundError = require('../errors/not-found-error');
+const WrongDataError = require('../errors/wrong-request-data');
 
-module.exports.getCards = (req, res) => {
+module.exports.getCards = (req, res, next) => {
   Card.find({}, { __v: 0 })
     .then((item) => res.send(item))
-    .catch((err) => {
-      if (err) {
-        res.status(500).send({ message: "Ошибка по умолчанию" });
-      }
-    });
+    .catch(next);
 };
 
-module.exports.createCard = (req, res) => {
+module.exports.createCard = (req, res, next) => {
   Card({
     name: req.body.name,
     link: req.body.link,
@@ -22,78 +20,58 @@ module.exports.createCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === "TypeError") {
-        res.status(400).send({
-          message: "Переданы некорректные данные при создании карточки",
-        });
-      } else {
-        res.status(500).send({ message: "Ошибка по умолчанию" });
+        throw new WrongDataError("Переданы некорректные данные при создании карточки");
       }
-    });
+    })
+    .catch(next);
 };
 
-module.exports.deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId)
-    .orFail(new Error("NotFound"))
-    .then((item) => res.send(item))
+module.exports.deleteCard = (req, res, next) => {
+  Card.deleteOne({ _id: req.params.cardId, owner: req.user._id })
+    .then((item) => {
+      if (!item) { throw new NotFoundError('Можно удалять только свои существующие карточки'); }
+      res.send(item);
+    })
     .catch((err) => {
-      if (err.message === "NotFound") {
-        res
-          .status(404)
-          .send({ message: "Карточка по указанному id не найдена" });
-      } else if (err.name === "TypeError" || err.name === "CastError") {
-        res.status(400).send({
-          message: "Переданы некорректные данные карточки",
-        });
-      } else {
-        res.status(500).send({ message: "Ошибка по умолчанию" });
+      if (err.name === "CastError" || err.name === "TypeError") {
+        throw new WrongDataError("Переданы некорректные данные при удалении карточки");
       }
-    });
+    })
+    .catch(next);
 };
 
-module.exports.likeCard = (req, res) => {
+module.exports.likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
     { new: true }
   )
-    .orFail(new Error("NotFound"))
-    .then((item) => res.send(item))
+    .then((item) => {
+      if (!item) { throw new NotFoundError('Карточка по указанному id не найдена'); }
+      res.send(item);
+    })
     .catch((err) => {
-      if (err.message === "NotFound") {
-        res
-          .status(404)
-          .send({ message: "Карточка по указанному id не найдена" });
-      } else if (err.name === "TypeError" || err.name === "CastError") {
-        res.status(400).send({
-          message: "Переданы некорректные данные карточки",
-        });
-      } else {
-        res.status(500).send({ message: "Ошибка по умолчанию" });
+      if (err.name === "CastError" || err.name === "TypeError") {
+        throw new WrongDataError("Переданы некорректные данные при удалении карточки");
       }
-    });
+    })
+    .catch(next);
 };
 
-module.exports.dislikeCard = (req, res) => {
+module.exports.dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
     { new: true }
   )
-    .orFail(new Error("NotFound"))
     .then((item) => {
+      if (!item) { throw new NotFoundError('Карточка по указанному id не найдена'); }
       res.send(item);
     })
     .catch((err) => {
-      if (err.message === "NotFound") {
-        res
-          .status(404)
-          .send({ message: "Карточка по указанному id не найдена" });
-      } else if (err.name === "TypeError" || err.name === "CastError") {
-        res.status(400).send({
-          message: "Переданы некорректные данные карточки",
-        });
-      } else {
-        res.status(500).send({ message: "Ошибка по умолчанию" });
+      if (err.name === "CastError" || err.name === "TypeError") {
+        throw new WrongDataError("Переданы некорректные данные при удалении карточки");
       }
-    });
+    })
+    .catch(next);
 };
