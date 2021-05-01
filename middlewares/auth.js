@@ -5,7 +5,7 @@ const AuthLoginError = require('../errors/auth-login-error');
 module.exports = (req, res, next) => {
   const authorization = req.headers.cookie;
   if (!authorization) {
-    return new AuthLoginError('Необходима авторизация');
+    throw new AuthLoginError('Необходима авторизация');
   }
 
   const token = authorization.replace('jwt=', '');
@@ -14,7 +14,7 @@ module.exports = (req, res, next) => {
   try {
     payload = jwt.verify(token, 'asdfasdf');
   } catch (err) {
-    return new AuthLoginError('Необходима авторизация');
+    throw new AuthLoginError('Необходима авторизация');
   }
 
   req.user = payload;

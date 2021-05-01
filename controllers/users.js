@@ -34,6 +34,7 @@ module.exports.getUser = (req, res, next) => {
       res.send(item);
     })
     .catch((err) => {
+      if (err.statusCode === 404) { next(err); }
       if (err.name === "CastError") {
         throw new WrongDataError("Переданы некорректные данные при поиске пользователя");
       }
@@ -85,6 +86,7 @@ module.exports.updateProfile = (req, res, next) => {
       res.send(item);
     })
     .catch((err) => {
+      if (err.statusCode === 404) { next(err); }
       if (err.name === "CastError" || err.name === "TypeError") {
         throw new WrongDataError("Переданы некорректные данные при поиске пользователя");
       }
@@ -105,6 +107,7 @@ module.exports.updateAvatar = (req, res, next) => {
       res.send(item);
     })
     .catch((err) => {
+      if (err.statusCode === 404) { next(err); }
       if (err.name === "CastError" || err.name === "TypeError") {
         throw new WrongDataError("Переданы некорректные данные при поиске пользователя");
       }
